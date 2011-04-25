@@ -6,8 +6,11 @@
 #include <vtkActor.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
+#include <vtkCallbackCommand.h>
 #include <list>
+#include <cassert>
 #include <map>
+#include <fstream>
 #include <string>
 using std::string;
 #include <iostream>
@@ -33,6 +36,8 @@ struct Puzzle {
   Colors colors;
 
   Puzzle() {
+    cubes.clear();
+    colors.clear();
     addColor(255,255,255,"white");
     addColor(255,0,0,"red");
     addColor(0,255,0,"green");
@@ -93,51 +98,113 @@ struct Puzzle {
   }
 };
 
+static Puzzle puzzle;
+static Puzzle::Cube cube(0,0,0,"default");
+vtkActor *sel_actor = NULL;
+vtkRenderWindow *window = NULL;
+
+void update_sel() {
+  assert(sel_actor);
+  assert(window);
+  sel_actor->SetPosition(cube.x,cube.y,cube.z);
+  window->Render();
+}
+
+void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,void* callData)
+{
+  vtkRenderWindowInteractor *iren = 
+    static_cast<vtkRenderWindowInteractor*>(caller);
+
+  string pressed = iren->GetKeySym();
+
+  //cout << "pressed " << pressed << endl;
+  if (pressed=="Right") { cube.x++; update_sel(); return; }
+  if (pressed=="Left") { cube.x--; update_sel(); return; }
+  if (pressed=="Up") { cube.y++; update_sel(); return; }
+  if (pressed=="Down") { cube.y--; update_sel(); return; }
+  if (pressed=="Next") { cube.z++; update_sel(); return; }
+  if (pressed=="Prior") { cube.z--; update_sel(); return; }
+  if (pressed=="s") {
+    const string filename("dessin.pipi");
+    cout << "saving to " << filename << endl;
+    ofstream handle(filename.c_str());
+    puzzle.dump(handle);
+    handle.close();
+    return;
+  }
+
+  cout << "unhandled " << pressed << endl;
+}
+
 int main(int argc,char * argv[])
 {
-  Puzzle puzzle;
+  cube.x = 2;
   puzzle.addCube(0,0,0,"white");
   puzzle.addCube(1,0,0,"red");
   puzzle.addCube(0,1,0,"green");
   puzzle.addCube(0,0,1,"blue");
 
-  vtkPolyData *data = puzzle.buildPolyData();
+  vtkActor *puzzle_actor = vtkActor::New();
+  {
+    vtkPolyData *data = puzzle.buildPolyData();
 
-  vtkCubeSource *source=vtkCubeSource::New();
-  const double length=1;
-  source->SetXLength(length);
-  source->SetYLength(length);
-  source->SetZLength(length);
+    vtkCubeSource *source = vtkCubeSource::New();
+    const double length=1;
+    source->SetXLength(length);
+    source->SetYLength(length);
+    source->SetZLength(length);
 
-  vtkGlyph3D *glyph = vtkGlyph3D::New();
-  glyph->SetScaleModeToDataScalingOff();
-  glyph->SetColorModeToColorByScalar();
-  glyph->SetInput(data);
-  glyph->SetSource(source->GetOutput());
-  data->Delete();
-  source->Delete();
+    vtkGlyph3D *glyph = vtkGlyph3D::New();
+    glyph->SetScaleModeToDataScalingOff();
+    glyph->SetColorModeToColorByScalar();
+    glyph->SetInput(data);
+    glyph->SetSource(source->GetOutput());
+    data->Delete();
+    source->Delete();
 
-  vtkPolyDataMapper *mapper=vtkPolyDataMapper::New();
-  mapper->SetInput(glyph->GetOutput());
-  glyph->Delete();
+    vtkPolyDataMapper *mapper=vtkPolyDataMapper::New();
+    mapper->SetInput(glyph->GetOutput());
+    glyph->Delete();
 
-  vtkActor *actor=vtkActor::New();
-  actor->SetMapper(mapper);
-  mapper->Delete();
+    puzzle_actor->SetMapper(mapper);
+    mapper->Delete();
+  }
+
+  sel_actor = vtkActor::New();
+  {
+    vtkCubeSource *source=vtkCubeSource::New();
+    const double length=1;
+    source->SetXLength(length);
+    source->SetYLength(length);
+    source->SetZLength(length);
+
+    vtkPolyDataMapper *mapper=vtkPolyDataMapper::New();
+    mapper->SetInput(source->GetOutput());
+    source->Delete();
+
+    sel_actor->SetMapper(mapper);
+    mapper->Delete();
+  }
 
   vtkRenderer *renderer=vtkRenderer::New();
-  renderer->AddActor(actor);
-  actor->Delete();
+  renderer->AddActor(puzzle_actor);
+  renderer->AddActor(sel_actor);
+  puzzle_actor->Delete();
+  sel_actor->Delete();
 
   vtkRenderWindowInteractor *inter=vtkRenderWindowInteractor::New();
+  vtkCallbackCommand *callback = vtkCallbackCommand::New();
+  callback->SetCallback(keyCallback);
+  inter->AddObserver(vtkCommand::KeyPressEvent,callback);
 
-  vtkRenderWindow *window=vtkRenderWindow::New();
+  window=vtkRenderWindow::New();
   window->SetInteractor(inter);
   inter->Delete();
   window->AddRenderer(renderer);
   renderer->Delete();
 
-  window->Render();
+  window->SetSize(800,800);
+  update_sel();
   inter->Start();
 
   window->Delete();
