@@ -95,6 +95,22 @@ struct Puzzle {
     cubes.push_back(Cube(x,y,z,color));
   }
 
+  void removeCube(int x, int y,int z) {
+    for (Cubes::iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
+      if (x==iter->x && y==iter->y && z==iter->z) {
+	cubes.erase(iter);
+	return;
+      }
+    }
+  }
+
+  bool hasCube(int x, int y,int z) {
+    for (Cubes::const_iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
+      if (x==iter->x && y==iter->y && z==iter->z) return true;
+    }
+    return false;
+  }
+
   void addColor(unsigned char r,unsigned char g,unsigned char b,const string &name) {
     //TODO add check 
     colors[name] = Color(r,g,b);
@@ -105,11 +121,16 @@ static Puzzle puzzle;
 static Puzzle::Cube cube(0,0,0,"default");
 vtkActor *sel_actor = NULL;
 vtkRenderWindow *window = NULL;
+vtkGlyph3D *glyph = NULL;
 
 void update_sel() {
   assert(sel_actor);
   assert(window);
+  assert(glyph);
   sel_actor->SetPosition(cube.x,cube.y,cube.z);
+  vtkPolyData *data = puzzle.buildPolyData();
+  glyph->SetInput(data);
+  data->Delete();
   window->Render();
 }
 
@@ -127,6 +148,18 @@ void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,vo
   if (pressed=="Down") { cube.y--; update_sel(); return; }
   if (pressed=="Next") { cube.z++; update_sel(); return; }
   if (pressed=="Prior") { cube.z--; update_sel(); return; }
+  if (pressed=="space") {
+    if (!puzzle.hasCube(cube.x,cube.y,cube.z)) {
+      puzzle.addCube(cube.x,cube.y,cube.z,"white");
+      cout << "added cube" << endl;
+      update_sel();
+    } else {
+      puzzle.removeCube(cube.x,cube.y,cube.z);
+      cout << "removed cube" << endl;
+      update_sel();
+    }
+    return;
+  }
   if (pressed=="s") {
     const string filename("dessin.pipi");
     cout << "saving to " << filename << endl;
@@ -157,7 +190,7 @@ int main(int argc,char * argv[])
     source->SetYLength(length);
     source->SetZLength(length);
 
-    vtkGlyph3D *glyph = vtkGlyph3D::New();
+    glyph = vtkGlyph3D::New();
     glyph->SetScaleModeToDataScalingOff();
     glyph->SetColorModeToColorByScalar();
     glyph->SetInput(data);
