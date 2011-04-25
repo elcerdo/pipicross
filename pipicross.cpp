@@ -7,6 +7,9 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkCallbackCommand.h>
+#include <vtkTubeFilter.h>
+#include <vtkCellData.h>
+#include <vtkCellArray.h>
 #include <list>
 #include <cassert>
 #include <map>
@@ -172,15 +175,71 @@ int main(int argc,char * argv[])
 
   sel_actor = vtkActor::New();
   {
-    vtkCubeSource *source=vtkCubeSource::New();
     const double length=1;
-    source->SetXLength(length);
-    source->SetYLength(length);
-    source->SetZLength(length);
+    vtkPoints *points = vtkPoints::New();
+    points->InsertNextPoint(-length/2.,-length/2.,-length/2.);
+    points->InsertNextPoint(length/2.,-length/2.,-length/2.);
+    points->InsertNextPoint(length/2.,length/2.,-length/2.);
+    points->InsertNextPoint(-length/2.,length/2.,-length/2.);
+    points->InsertNextPoint(-length/2.,-length/2.,length/2.);
+    points->InsertNextPoint(length/2.,-length/2.,length/2.);
+    points->InsertNextPoint(length/2.,length/2.,length/2.);
+    points->InsertNextPoint(-length/2.,length/2.,length/2.);
+    vtkCellArray *lines = vtkCellArray::New();
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(0);
+    lines->InsertCellPoint(1);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(1);
+    lines->InsertCellPoint(2);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(2);
+    lines->InsertCellPoint(3);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(3);
+    lines->InsertCellPoint(0);
+
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(4);
+    lines->InsertCellPoint(5);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(5);
+    lines->InsertCellPoint(6);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(6);
+    lines->InsertCellPoint(7);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(7);
+    lines->InsertCellPoint(4);
+
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(0);
+    lines->InsertCellPoint(4);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(1);
+    lines->InsertCellPoint(5);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(2);
+    lines->InsertCellPoint(6);
+    lines->InsertNextCell(2);
+    lines->InsertCellPoint(3);
+    lines->InsertCellPoint(7);
+
+    vtkPolyData *data = vtkPolyData::New();
+    data->SetPoints(points);
+    points->Delete();
+    data->SetLines(lines);
+    lines->Delete();
+
+    vtkTubeFilter *filter = vtkTubeFilter::New();
+    filter->SetRadius(.1);
+    filter->SetNumberOfSides(10);
+    filter->SetInput(data);
+    data->Delete();
 
     vtkPolyDataMapper *mapper=vtkPolyDataMapper::New();
-    mapper->SetInput(source->GetOutput());
-    source->Delete();
+    mapper->SetInput(filter->GetOutput());
+    filter->Delete();
 
     sel_actor->SetMapper(mapper);
     mapper->Delete();
