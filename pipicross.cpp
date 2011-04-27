@@ -1,5 +1,6 @@
 #include <vtkCubeSource.h>
 #include <vtkGlyph3D.h>
+#include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkPointData.h>
 #include <vtkPolyDataMapper.h>
@@ -364,18 +365,21 @@ int main(int argc,char * argv[])
     mapper->Delete();
   }
 
-  vtkRenderer *renderer=vtkRenderer::New();
+  vtkRenderer *renderer = vtkRenderer::New();
   renderer->AddActor(puzzle_actor);
   renderer->AddActor(sel_actor);
   puzzle_actor->Delete();
   sel_actor->Delete();
 
-  vtkRenderWindowInteractor *inter=vtkRenderWindowInteractor::New();
+  vtkRenderWindowInteractor *inter = vtkRenderWindowInteractor::New();
+  vtkInteractorStyleTrackballCamera *style = vtkInteractorStyleTrackballCamera::New();
+  inter->SetInteractorStyle(style);
+  style->Delete();
   vtkCallbackCommand *callback = vtkCallbackCommand::New();
   callback->SetCallback(keyCallback);
   inter->AddObserver(vtkCommand::KeyPressEvent,callback);
 
-  window=vtkRenderWindow::New();
+  window = vtkRenderWindow::New();
   window->SetInteractor(inter);
   inter->Delete();
   window->AddRenderer(renderer);
