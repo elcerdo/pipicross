@@ -5,6 +5,8 @@
 #include <vtkPointData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
+#include <vtkTextProperty.h>
+#include <vtkTextActor.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkCallbackCommand.h>
@@ -15,6 +17,7 @@
 #include <cassert>
 #include <map>
 #include <fstream>
+#include <sstream>
 #include <string>
 using std::string;
 #include <iostream>
@@ -50,6 +53,7 @@ public:
   }
 
   const std::string &getFilename() const { return filename; }
+  const Colors &getColors() const { return colors; }
 
   void reset() {
     cubes.clear();
@@ -218,7 +222,7 @@ vtkActor *sel_actor = NULL;
 vtkRenderWindow *window = NULL;
 vtkGlyph3D *glyph = NULL;
 
-void update_sel() {
+void updateSelection() {
   assert(sel_actor);
   assert(window);
   assert(glyph);
@@ -230,6 +234,30 @@ void update_sel() {
   window->Render();
 }
 
+void addColorActor(vtkRenderer *renderer) {
+  assert(renderer);
+
+  int y = 24;
+  size_t kk = 1;
+  for (Puzzle::Colors::const_iterator iter = puzzle.getColors().begin(); iter!=puzzle.getColors().end(); iter++) {
+    vtkTextActor *actor = vtkTextActor::New();
+    std::stringstream name;
+    name << "F" << kk;
+    name << " ";
+    name << iter->first.c_str();
+    
+    actor->SetInput(name.str().c_str());
+    actor->SetDisplayPosition(20,y);
+    actor->GetTextProperty()->SetColor(static_cast<double>(iter->second.r)/255.,static_cast<double>(iter->second.g)/255.,static_cast<double>(iter->second.b)/255.);
+    actor->GetTextProperty()->SetBold(true);
+    actor->GetTextProperty()->SetFontSize(24);
+    renderer->AddActor(actor);
+    actor->Delete();
+    y+=24;
+    kk++;
+  }
+}
+
 void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,void* callData)
 {
   vtkRenderWindowInteractor *iren = 
@@ -238,21 +266,21 @@ void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,vo
   string pressed = iren->GetKeySym();
 
   //cout << "pressed " << pressed << endl;
-  if (pressed=="Right") { cube.x++; update_sel(); return; }
-  if (pressed=="Left") { cube.x--; update_sel(); return; }
-  if (pressed=="Up") { cube.y++; update_sel(); return; }
-  if (pressed=="Down") { cube.y--; update_sel(); return; }
-  if (pressed=="Next") { cube.z++; update_sel(); return; }
-  if (pressed=="Prior") { cube.z--; update_sel(); return; }
+  if (pressed=="Right") { cube.x++; updateSelection(); return; }
+  if (pressed=="Left") { cube.x--; updateSelection(); return; }
+  if (pressed=="Up") { cube.y++; updateSelection(); return; }
+  if (pressed=="Down") { cube.y--; updateSelection(); return; }
+  if (pressed=="Next") { cube.z++; updateSelection(); return; }
+  if (pressed=="Prior") { cube.z--; updateSelection(); return; }
   if (pressed=="space") {
     if (!puzzle.hasCube(cube.x,cube.y,cube.z)) {
       puzzle.addCube(cube.x,cube.y,cube.z,"white");
       cout << "added cube" << endl;
-      update_sel();
+      updateSelection();
     } else {
       puzzle.removeCube(cube.x,cube.y,cube.z);
       cout << "removed cube" << endl;
-      update_sel();
+      updateSelection();
     }
     return;
   }
@@ -386,7 +414,8 @@ int main(int argc,char * argv[])
   renderer->Delete();
 
   window->SetSize(800,800);
-  update_sel();
+  addColorActor(renderer);
+  updateSelection();
   inter->Start();
 
   window->Delete();
