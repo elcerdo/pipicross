@@ -38,14 +38,37 @@ struct Puzzle {
   typedef std::map<string,Color> Colors;
   Colors colors;
 
+  string filename;
+
   Puzzle() {
+    reset();
+  }
+
+  void reset() {
     cubes.clear();
     colors.clear();
     addColor(255,255,255,"white");
     addColor(255,0,0,"red");
     addColor(0,255,0,"green");
     addColor(0,0,255,"blue");
+    filename = "dessin.pipi";
   }
+
+  void save() const {
+    cout << "saving to " << filename << endl;
+    ofstream handle(filename.c_str());
+    dump(handle);
+    assert(handle.good());
+    handle.close();
+  }
+
+  void load(const string &filename) {
+    cout << "loading " << filename << endl;
+    ifstream handle(filename.c_str());
+    assert(handle.good());
+    handle.close();
+  }
+
 
   void dump(std::ostream &os) const {
     os << "*** COLORS ***" << endl;
@@ -62,8 +85,6 @@ struct Puzzle {
   }
 
   vtkPolyData *buildPolyData() const {
-    dump(cout);
-
     vtkPoints *points = vtkPoints::New();
     vtkUnsignedCharArray *point_colors = vtkUnsignedCharArray::New();
     point_colors->SetNumberOfComponents(3);
@@ -131,6 +152,7 @@ void update_sel() {
   vtkPolyData *data = puzzle.buildPolyData();
   glyph->SetInput(data);
   data->Delete();
+  window->SetWindowName(puzzle.filename.c_str());
   window->Render();
 }
 
@@ -160,25 +182,22 @@ void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,vo
     }
     return;
   }
-  if (pressed=="s") {
-    const string filename("dessin.pipi");
-    cout << "saving to " << filename << endl;
-    ofstream handle(filename.c_str());
-    puzzle.dump(handle);
-    handle.close();
-    return;
-  }
+  if (pressed=="s") { puzzle.save(); return; }
 
   cout << "unhandled " << pressed << endl;
 }
 
 int main(int argc,char * argv[])
 {
-  cube.x = 2;
-  puzzle.addCube(0,0,0,"white");
-  puzzle.addCube(1,0,0,"red");
-  puzzle.addCube(0,1,0,"green");
-  puzzle.addCube(0,0,1,"blue");
+  if (argc>1) {
+    puzzle.load(argv[1]);
+  } else {
+    cube.x = 2;
+    puzzle.addCube(0,0,0,"white");
+    puzzle.addCube(1,0,0,"red");
+    puzzle.addCube(0,1,0,"green");
+    puzzle.addCube(0,0,1,"blue");
+  }
 
   vtkActor *puzzle_actor = vtkActor::New();
   {

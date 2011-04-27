@@ -1,0 +1,43 @@
+*** COLORS ***
+4 colors
+0 0 255 blue
+0 255 0 green
+255 0 0 red
+255 255 255 white
+*** CUBES ***
+35 cubes
+0 0 0 white
+0 0 1 white
+0 0 2 white
+0 0 3 white
+0 0 4 white
+0 0 5 white
+0 0 6 white
+0 -1 6 white
+0 -2 6 white
+2 -2 0 white
+3 -2 0 white
+1 1 0 white
+2 2 0 white
+3 2 0 white
+4 1 0 white
+5 0 0 white
+4 -1 0 white
+1 -1 0 white
+6 1 0 white
+6 -1 0 white
+7 2 0 white
+8 2 0 white
+9 1 0 white
+10 0 0 white
+9 -1 0 white
+8 -2 0 white
+7 -2 0 white
+10 0 1 white
+10 0 2 white
+10 0 3 white
+10 0 4 white
+10 0 5 white
+10 0 6 white
+10 -1 6 white
+10 -2 6 white
