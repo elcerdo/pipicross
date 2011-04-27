@@ -20,6 +20,8 @@ using std::string;
 using std::cout;
 using std::endl;
 
+#include "helper.h"
+
 struct Puzzle {
   struct Cube {
     Cube(int x,int y,int z,const string &color) : x(x), y(y), z(z), color(color) {}
@@ -62,11 +64,76 @@ struct Puzzle {
     handle.close();
   }
 
-  void load(const string &filename) {
-    cout << "loading " << filename << endl;
-    ifstream handle(filename.c_str());
-    assert(handle.good());
+  void load(const string &lfilename) {
+    cout << "loading " << lfilename << endl;
+    ifstream handle(lfilename.c_str());
+    if (!handle.good()) {
+      std::cerr << "error while loading " << lfilename << endl;
+      return;
+    }
+
+    string section;
+    Colors lcolors;
+    Cubes lcubes;
+    while (!handle.eof()) {
+      char line[256];
+      handle.getline(line,256);
+
+      if (string(line).empty()) continue;
+
+      { // section start
+	Matches matches = match_regex("^\\*+ +([A-Z]+) +\\*+$",line);
+	if (!matches.empty()) {
+	  section = matches[1];
+	  //cout << "entering section " << section << endl;
+	  continue;
+	}
+      }
+
+      { // number of element in section
+	Matches matches = match_regex("^([0-9]+) +([a-z]+)$",line);
+	if (!matches.empty()) {
+	  int nfound = atoi(matches[1].c_str());
+	  string name = matches[2];
+	  //cout << "found " << nfound << " " << name << endl;
+	  continue;
+	}
+      }
+
+      if (section=="COLORS") { // color element
+	Matches matches = match_regex("^([0-9]+) +([0-9]+) +([0-9]+) +([a-z]+)$",line);
+	if (!matches.empty()) {
+	  int red = atoi(matches[1].c_str());
+	  int green = atoi(matches[2].c_str());
+	  int blue = atoi(matches[3].c_str());
+	  string name = matches[4];
+	  //cout << "color " << name << endl;
+	  lcolors[name] = Color(red,green,blue);
+	  continue;
+	}
+      }
+
+      if (section=="CUBES") { // cube element
+	Matches matches = match_regex("^(-?[0-9]+) +(-?[0-9]+) +(-?[0-9]+) +([a-z]+)$",line);
+	if (!matches.empty()) {
+	  int x = atoi(matches[1].c_str());
+	  int y = atoi(matches[2].c_str());
+	  int z = atoi(matches[3].c_str());
+	  string color = matches[4];
+	  //cout << "cube " << x << "," << y << "," << z << endl;
+	  lcubes.push_back(Cube(x,y,z,color));
+	  continue;
+	}
+      }
+
+      std::cerr << "syntax error in " << lfilename << " (" << line << ")" << endl;
+      return;
+    } 
     handle.close();
+
+    filename = lfilename;
+    cubes = lcubes;
+    colors = lcolors;
   }
 
 

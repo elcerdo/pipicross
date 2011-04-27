@@ -10,6 +10,6 @@ INCLUDE(${VTK_USE_FILE})
 INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIRS})
 SET(VTK_LIBRARIES vtkRendering vtkCommon vtkFiltering vtkGraphics vtkIO vtkImaging vtkRendering vtkHybrid)
 
-ADD_EXECUTABLE(pipicross pipicross.cpp)
+ADD_EXECUTABLE(pipicross pipicross.cpp helper.cpp)
 TARGET_LINK_LIBRARIES(pipicross ${VTK_LIBRARIES})
 
