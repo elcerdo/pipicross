@@ -23,13 +23,12 @@ using std::endl;
 #include "helper.h"
 
 struct Puzzle {
+public:
   struct Cube {
-    Cube(int x,int y,int z,const string &color) : x(x), y(y), z(z), color(color) {}
+    Cube(int x,int y,int z) : x(x), y(y), z(z) {}
     int x,y,z;
-    string color;
   };
-  typedef std::list<Cube> Cubes;
-  Cubes cubes;
+  typedef std::map<Cube,string> Cubes;
 
   struct Color {
     Color(unsigned char r=0,unsigned char g=0,unsigned char b=0) : r(r), g(g), b(b) {}
@@ -38,13 +37,18 @@ struct Puzzle {
     unsigned char b;
   };
   typedef std::map<string,Color> Colors;
-  Colors colors;
 
+protected:
+  Cubes cubes;
+  Colors colors;
   string filename;
 
+public:
   Puzzle() {
     reset();
   }
+
+  const std::string &getFilename() const { return filename; }
 
   void reset() {
     cubes.clear();
@@ -121,7 +125,7 @@ struct Puzzle {
 	  int z = atoi(matches[3].c_str());
 	  string color = matches[4];
 	  //cout << "cube " << x << "," << y << "," << z << endl;
-	  lcubes.push_back(Cube(x,y,z,color));
+	  lcubes[Cube(x,y,z)] = color;
 	  continue;
 	}
       }
@@ -147,7 +151,7 @@ struct Puzzle {
     os << "*** CUBES ***" << endl;
     os << cubes.size() << " cubes" << endl;
     for (Cubes::const_iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
-      os << iter->x << " " << iter->y << " " << iter->z << " " << iter->color << endl;
+      os << iter->first.x << " " << iter->first.y << " " << iter->first.z << " " << iter->second << endl;
     }
   }
 
@@ -157,12 +161,12 @@ struct Puzzle {
     point_colors->SetNumberOfComponents(3);
 
     for (Cubes::const_iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
-      points->InsertNextPoint(iter->x,iter->y,iter->z);
+      points->InsertNextPoint(iter->first.x,iter->first.y,iter->first.z);
 
-      Colors::const_iterator fcolor = colors.find(iter->color);
+      Colors::const_iterator fcolor = colors.find(iter->second);
       if (fcolor==colors.end()) {
-	cout << "WARNING " << "can't found color '" << iter->color << "'" << endl;
-	point_colors->InsertNextTuple3(0,0,0);
+	cout << "WARNING " << "can't found color '" << iter->second << "'" << endl;
+	point_colors->InsertNextTuple3(255,255,255);
 	continue;
       }
 
@@ -180,23 +184,18 @@ struct Puzzle {
 
   void addCube(int x,int y,int z,const string &color) {
     //TODO add check 
-    cubes.push_back(Cube(x,y,z,color));
+    cubes[Cube(x,y,z)] = color;
   }
 
   void removeCube(int x, int y,int z) {
-    for (Cubes::iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
-      if (x==iter->x && y==iter->y && z==iter->z) {
-	cubes.erase(iter);
-	return;
-      }
-    }
+    Cubes::iterator iter = cubes.find(Cube(x,y,z));
+    if (iter==cubes.end()) return;
+    cubes.erase(iter);
   }
 
-  bool hasCube(int x, int y,int z) {
-    for (Cubes::const_iterator iter=cubes.begin(); iter!=cubes.end(); iter++) {
-      if (x==iter->x && y==iter->y && z==iter->z) return true;
-    }
-    return false;
+  bool hasCube(int x, int y,int z) const {
+    Cubes::const_iterator iter = cubes.find(Cube(x,y,z));
+    return (iter!=cubes.end());
   }
 
   void addColor(unsigned char r,unsigned char g,unsigned char b,const string &name) {
@@ -205,8 +204,15 @@ struct Puzzle {
   }
 };
 
+bool operator<(const Puzzle::Cube &a,const Puzzle::Cube &b) {
+  if (a.z!=b.z) return a.z<b.z;
+  if (a.y!=b.y) return a.y<b.y;
+  if (a.x!=b.x) return a.x<b.x;
+  return false;
+}
+
 static Puzzle puzzle;
-static Puzzle::Cube cube(0,0,0,"default");
+static Puzzle::Cube cube(0,0,0);
 vtkActor *sel_actor = NULL;
 vtkRenderWindow *window = NULL;
 vtkGlyph3D *glyph = NULL;
@@ -219,7 +225,7 @@ void update_sel() {
   vtkPolyData *data = puzzle.buildPolyData();
   glyph->SetInput(data);
   data->Delete();
-  window->SetWindowName(puzzle.filename.c_str());
+  window->SetWindowName(puzzle.getFilename().c_str());
   window->Render();
 }
 
@@ -258,12 +264,6 @@ int main(int argc,char * argv[])
 {
   if (argc>1) {
     puzzle.load(argv[1]);
-  } else {
-    cube.x = 2;
-    puzzle.addCube(0,0,0,"white");
-    puzzle.addCube(1,0,0,"red");
-    puzzle.addCube(0,1,0,"green");
-    puzzle.addCube(0,0,1,"blue");
   }
 
   vtkActor *puzzle_actor = vtkActor::New();
