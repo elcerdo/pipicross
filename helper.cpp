@@ -3,7 +3,7 @@
 #include <regex.h>
 #include <iostream>
 
-Matches match_regex(const std::string &regex_str,const std::string &line_str) {
+Matches matchRegex(const std::string &regex_str,const std::string &line_str) {
   regex_t regex;
 
   { // build regex

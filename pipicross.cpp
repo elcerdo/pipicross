@@ -91,7 +91,7 @@ public:
       if (string(line).empty()) continue;
 
       { // section start
-	Matches matches = match_regex("^\\*+ +([A-Z]+) +\\*+$",line);
+	Matches matches = matchRegex("^\\*+ +([A-Z]+) +\\*+$",line);
 	if (!matches.empty()) {
 	  section = matches[1];
 	  //cout << "entering section " << section << endl;
@@ -100,9 +100,9 @@ public:
       }
 
       { // number of element in section
-	Matches matches = match_regex("^([0-9]+) +([a-z]+)$",line);
+	Matches matches = matchRegex("^([0-9]+) +([a-z]+)$",line);
 	if (!matches.empty()) {
-	  int nfound = atoi(matches[1].c_str());
+	  int nfound = convertFromString<int>(matches[1]);
 	  string name = matches[2];
 	  //cout << "found " << nfound << " " << name << endl;
 	  continue;
@@ -110,11 +110,11 @@ public:
       }
 
       if (section=="COLORS") { // color element
-	Matches matches = match_regex("^([0-9]+) +([0-9]+) +([0-9]+) +([a-z]+)$",line);
+	Matches matches = matchRegex("^([0-9]+) +([0-9]+) +([0-9]+) +([a-z]+)$",line);
 	if (!matches.empty()) {
-	  int red = atoi(matches[1].c_str());
-	  int green = atoi(matches[2].c_str());
-	  int blue = atoi(matches[3].c_str());
+	  int red = convertFromString<int>(matches[1]);
+	  int green = convertFromString<int>(matches[2]);
+	  int blue = convertFromString<int>(matches[3]);
 	  string name = matches[4];
 	  //cout << "color " << name << endl;
 	  lcolors[name] = Color(red,green,blue);
@@ -123,11 +123,11 @@ public:
       }
 
       if (section=="CUBES") { // cube element
-	Matches matches = match_regex("^(-?[0-9]+) +(-?[0-9]+) +(-?[0-9]+) +([a-z]+)$",line);
+	Matches matches = matchRegex("^(-?[0-9]+) +(-?[0-9]+) +(-?[0-9]+) +([a-z]+)$",line);
 	if (!matches.empty()) {
-	  int x = atoi(matches[1].c_str());
-	  int y = atoi(matches[2].c_str());
-	  int z = atoi(matches[3].c_str());
+	  int x = convertFromString<int>(matches[1]);
+	  int y = convertFromString<int>(matches[2]);
+	  int z = convertFromString<int>(matches[3]);
 	  string color = matches[4];
 	  //cout << "cube " << x << "," << y << "," << z << endl;
 	  lcubes[Cube(x,y,z)] = color;
