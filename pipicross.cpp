@@ -187,24 +187,36 @@ public:
     return pd;
   }
 
-  void addCube(int x,int y,int z,const string &color) {
-    //TODO add check 
-    cubes[Cube(x,y,z)] = color;
-  }
-
-  void removeCube(int x, int y,int z) {
-    Cubes::iterator iter = cubes.find(Cube(x,y,z));
-    if (iter==cubes.end()) return;
-    cubes.erase(iter);
-  }
-
   bool hasCube(int x, int y,int z) const {
     Cubes::const_iterator iter = cubes.find(Cube(x,y,z));
     return (iter!=cubes.end());
   }
 
+  void addCube(int x,int y,int z,const string &color) {
+    Cube cube(x,y,z);
+    assert(cubes.find(cube)==cubes.end()); // not already inserted
+    cubes[cube] = color;
+  }
+
+  void removeCube(int x, int y,int z) {
+    Cubes::iterator iter = cubes.find(Cube(x,y,z));
+    assert(iter!=cubes.end());
+    cubes.erase(iter);
+  }
+
+  void changeCubeColor(int x, int y,int z, const std::string &color) {
+    Cubes::iterator iter = cubes.find(Cube(x,y,z));
+    assert(iter!=cubes.end());
+    iter->second =  color;
+  }
+
+  bool hasColor(const std::string &name) {
+    Colors::const_iterator iter = colors.find(name);
+    return (iter!=colors.end());
+  }
+
   void addColor(unsigned char r,unsigned char g,unsigned char b,const string &name) {
-    //TODO add check 
+    assert(colors.find(name)==colors.end()); // not already inserted
     colors[name] = Color(r,g,b);
   }
 };
@@ -222,6 +234,9 @@ vtkActor *sel_actor = NULL;
 vtkRenderWindow *window = NULL;
 vtkGlyph3D *glyph = NULL;
 
+typedef std::map<string,string> KeyColors;
+static KeyColors keyColors;
+
 void updateSelection() {
   assert(sel_actor);
   assert(window);
@@ -236,6 +251,7 @@ void updateSelection() {
 
 void addColorActor(vtkRenderer *renderer) {
   assert(renderer);
+  assert(keyColors.empty());
 
   int y = 24;
   size_t kk = 1;
@@ -243,6 +259,9 @@ void addColorActor(vtkRenderer *renderer) {
     vtkTextActor *actor = vtkTextActor::New();
     std::stringstream name;
     name << "F" << kk;
+
+    string key = name.str();
+
     name << " ";
     name << iter->first.c_str();
     
@@ -253,6 +272,9 @@ void addColorActor(vtkRenderer *renderer) {
     actor->GetTextProperty()->SetFontSize(24);
     renderer->AddActor(actor);
     actor->Delete();
+
+    keyColors[key] = iter->first;
+
     y+=24;
     kk++;
   }
@@ -266,24 +288,40 @@ void keyCallback(vtkObject* caller,long unsigned int eventId,void* clientData,vo
   string pressed = iren->GetKeySym();
 
   //cout << "pressed " << pressed << endl;
+  
+  // moving around
   if (pressed=="Right") { cube.x++; updateSelection(); return; }
   if (pressed=="Left") { cube.x--; updateSelection(); return; }
   if (pressed=="Up") { cube.y++; updateSelection(); return; }
   if (pressed=="Down") { cube.y--; updateSelection(); return; }
   if (pressed=="Next") { cube.z++; updateSelection(); return; }
   if (pressed=="Prior") { cube.z--; updateSelection(); return; }
+
+  // switch cube on/off
   if (pressed=="space") {
     if (!puzzle.hasCube(cube.x,cube.y,cube.z)) {
       puzzle.addCube(cube.x,cube.y,cube.z,"white");
       cout << "added cube" << endl;
-      updateSelection();
     } else {
       puzzle.removeCube(cube.x,cube.y,cube.z);
       cout << "removed cube" << endl;
-      updateSelection();
     }
+    updateSelection();
     return;
   }
+
+  // change color
+  for (KeyColors::const_iterator iter=keyColors.begin(); iter!=keyColors.end(); iter++) {
+    if (pressed!=iter->first) continue;
+    cout << "changing color to " << iter->second << endl;
+    assert(puzzle.hasColor(iter->second));
+    if (!puzzle.hasCube(cube.x,cube.y,cube.z)) puzzle.addCube(cube.x,cube.y,cube.z,iter->second);
+    else puzzle.changeCubeColor(cube.x,cube.y,cube.z,iter->second);
+    updateSelection();
+    return;
+  }
+
+  // save puzzle
   if (pressed=="s") { puzzle.save(); return; }
 
   cout << "unhandled " << pressed << endl;
